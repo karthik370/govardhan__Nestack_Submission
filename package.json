@@ -1,0 +1,22 @@
+{
+  "name": "otp-auth-server",
+  "version": "1.0.0",
+  "description": "Abuse-resistant OTP authentication backend (Nestack SDE assessment)",
+  "main": "index.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "node test/security.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "better-sqlite3": "^13.0.3",
+    "express": "^5.2.1"
+  }
+}

@@ -1,0 +1,6 @@
+node_modules/
+otp_store.sqlite
+otp_store.sqlite-shm
+otp_store.sqlite-wal
+*.sqlite
+.env

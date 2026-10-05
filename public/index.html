@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OTP Auth Tester</title>
+  <style>
+    body { font-family: sans-serif; max-width: 480px; margin: 60px auto; padding: 0 20px; }
+    h1 { font-size: 1.2rem; margin-bottom: 24px; }
+    h2 { font-size: 1rem; margin-bottom: 12px; }
+    section { border: 1px solid #ccc; padding: 16px; margin-bottom: 24px; border-radius: 4px; }
+    label { display: block; margin-bottom: 4px; font-size: 0.85rem; }
+    input { width: 100%; padding: 7px 8px; margin-bottom: 12px; box-sizing: border-box; font-size: 0.9rem; }
+    button { padding: 8px 16px; font-size: 0.9rem; cursor: pointer; }
+    p.msg { margin-top: 10px; font-size: 0.85rem; }
+    .ok  { color: green; }
+    .err { color: red; }
+    .warn { color: darkorange; }
+    pre { font-size: 0.75rem; background: #f4f4f4; padding: 8px; margin-top: 8px; white-space: pre-wrap; word-break: break-all; }
+  </style>
+</head>
+<body>
+
+<h1>OTP Auth Tester</h1>
+
+
+<section>
+  <h2>1. Send OTP</h2>
+  <label for="send-id">Email or Phone</label>
+  <input id="send-id" type="text" placeholder="user@example.com" />
+  <button onclick="sendOTP()">Send Code</button>
+  <p class="msg" id="send-msg"></p>
+</section>
+
+<section>
+  <h2>2. Verify OTP</h2>
+  <label for="verify-id">Identifier</label>
+  <input id="verify-id" type="text" placeholder="same email / phone" />
+  <label for="verify-code">6-digit Code (from server console)</label>
+  <input id="verify-code" type="text" maxlength="6" placeholder="000000" />
+  <button onclick="verifyOTP()">Verify</button>
+  <p class="msg" id="verify-msg"></p>
+  <pre id="verify-result" style="display:none"></pre>
+</section>
+
+<script>
+  async function post(path, body) {
+    const r = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    return { status: r.status, data: await r.json() };
+  }
+
+  async function sendOTP() {
+    const identifier = document.getElementById('send-id').value.trim();
+    const msg = document.getElementById('send-msg');
+    if (!identifier) { msg.textContent = 'Enter an identifier.'; msg.className = 'msg err'; return; }
+    try {
+      const { status, data } = await post('/auth/send', { identifier });
+      msg.textContent = data.message + (data.retry_after_s ? ` (retry in ${data.retry_after_s}s)` : '');
+      msg.className = 'msg ' + (status === 200 ? 'ok' : status === 429 ? 'warn' : 'err');
+      if (status === 200) document.getElementById('verify-id').value = identifier;
+    } catch (e) {
+      msg.textContent = 'Network error.'; msg.className = 'msg err';
+    }
+  }
+
+  async function verifyOTP() {
+    const identifier = document.getElementById('verify-id').value.trim();
+    const code       = document.getElementById('verify-code').value.trim();
+    const msg        = document.getElementById('verify-msg');
+    const pre        = document.getElementById('verify-result');
+    if (!identifier || !code) { msg.textContent = 'Fill both fields.'; msg.className = 'msg err'; return; }
+    try {
+      const { status, data } = await post('/auth/verify', { identifier, code });
+      msg.textContent = data.message + (typeof data.attempts_remaining === 'number' ? ` (${data.attempts_remaining} attempts left)` : '');
+      msg.className = 'msg ' + (status === 200 ? 'ok' : status === 429 ? 'warn' : 'err');
+      pre.style.display = data.session_token ? 'block' : 'none';
+      if (data.session_token) pre.textContent = 'Session token:\n' + data.session_token;
+    } catch (e) {
+      msg.textContent = 'Network error.'; msg.className = 'msg err';
+    }
+  }
+</script>
+</body>
+</html>
